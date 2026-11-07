@@ -1,0 +1,616 @@
+{
+	"info": {
+		"_postman_id": "c1f2e3d4-b5a6-7890-abcd-ef1234567890",
+		"name": "LoyaltyHub API",
+		"description": "Complete test collection for LoyaltyHub API with all success, idempotency, retry, conflict, and validation scenarios.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:5143",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "1. Wallets",
+			"item": [
+				{
+					"name": "Check Initial Wallet Balance W100 (200 OK)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status is 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"WalletId is W100 and has balance\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.walletId).to.eql(\"W100\");",
+									"    pm.expect(jsonData.balance).to.be.a(\"number\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/wallets/W100",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"wallets",
+								"W100"
+							]
+						},
+						"description": "Retrieves the current balance of seed wallet W100 (initial: 100 points)."
+					},
+					"response": []
+				},
+				{
+					"name": "Check Secondary Wallet Balance W200 (200 OK)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status is 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"WalletId is W200 and has balance 50\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.walletId).to.eql(\"W200\");",
+									"    pm.expect(jsonData.balance).to.eql(50);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/wallets/W200",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"wallets",
+								"W200"
+							]
+						},
+						"description": "Retrieves the current balance of secondary seed wallet W200 (initial: 50 points)."
+					},
+					"response": []
+				},
+				{
+					"name": "Unknown Wallet (404 Not Found)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status is 404 Not Found\", function () {",
+									"    pm.response.to.have.status(404);",
+									"});",
+									"pm.test(\"Error code is WALLET_NOT_FOUND\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.code).to.eql(\"WALLET_NOT_FOUND\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/wallets/W999",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"wallets",
+								"W999"
+							]
+						},
+						"description": "Returns 404 Not Found when requesting a walletId that does not exist."
+					},
+					"response": []
+				},
+				{
+					"name": "Empty Wallet ID (400 Bad Request)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status is 400 Bad Request\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/wallets/%20",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"wallets",
+								"%20"
+							]
+						},
+						"description": "Returns 400 Bad Request when walletId is empty or whitespace."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "2. Awards - Success & Idempotency",
+			"item": [
+				{
+					"name": "Award Points - First Time (201 Created)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status is 201 Created\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.test(\"AwardId is generated\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.awardId).to.be.a(\"string\");",
+									"    pm.expect(jsonData.points).to.eql(50);",
+									"    pm.environment.set(\"lastAwardId\", jsonData.awardId);",
+									"});",
+									"pm.test(\"Location header is present\", function () {",
+									"    pm.response.to.have.header(\"Location\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sourceId\": \"partner_pos_01\",\n  \"externalTransactionId\": \"tx_20261107_001\",\n  \"walletId\": \"W100\",\n  \"points\": 50\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/awards",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"awards"
+							]
+						},
+						"description": "First time an award is submitted. Successfully awards 50 points to W100 and returns 201 Created."
+					},
+					"response": []
+				},
+				{
+					"name": "Award Points - Idempotent Retry (200 OK)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status is 200 OK on retry\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Returns the same original AwardId\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    var savedAwardId = pm.environment.get(\"lastAwardId\");",
+									"    if (savedAwardId) {",
+									"        pm.expect(jsonData.awardId).to.eql(savedAwardId);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sourceId\": \"partner_pos_01\",\n  \"externalTransactionId\": \"tx_20261107_001\",\n  \"walletId\": \"W100\",\n  \"points\": 50\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/awards",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"awards"
+							]
+						},
+						"description": "Network retry with exact same (sourceId, externalTransactionId, walletId, points). Returns 200 OK with the original award without duplicate point credit."
+					},
+					"response": []
+				},
+				{
+					"name": "Verify Balance After Award (200 OK - Balance 150)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status is 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Balance is exactly 150 (not duplicated)\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.balance).to.eql(150);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/wallets/W100",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"wallets",
+								"W100"
+							]
+						},
+						"description": "Verifies that W100 received points once (100 + 50 = 150), and the retry did not add duplicate points."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "3. Awards - Conflict Scenarios",
+			"item": [
+				{
+					"name": "Conflict - Same Identity Different Points (409 Conflict)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status is 409 Conflict\", function () {",
+									"    pm.response.to.have.status(409);",
+									"});",
+									"pm.test(\"Error code is AWARD_CONFLICT\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.code).to.eql(\"AWARD_CONFLICT\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sourceId\": \"partner_pos_01\",\n  \"externalTransactionId\": \"tx_20261107_001\",\n  \"walletId\": \"W100\",\n  \"points\": 100\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/awards",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"awards"
+							]
+						},
+						"description": "Attempts a retry with the same transaction identity but changes points from 50 to 100. Returns 409 Conflict."
+					},
+					"response": []
+				},
+				{
+					"name": "Conflict - Same Identity Different Wallet (409 Conflict)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status is 409 Conflict\", function () {",
+									"    pm.response.to.have.status(409);",
+									"});",
+									"pm.test(\"Error code is AWARD_CONFLICT\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.code).to.eql(\"AWARD_CONFLICT\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sourceId\": \"partner_pos_01\",\n  \"externalTransactionId\": \"tx_20261107_001\",\n  \"walletId\": \"W200\",\n  \"points\": 50\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/awards",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"awards"
+							]
+						},
+						"description": "Attempts a retry with the same transaction identity but changes walletId to W200. Returns 409 Conflict."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "4. Awards - Validation & Error Handling",
+			"item": [
+				{
+					"name": "Award to Unknown Wallet (404 Not Found)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status is 404 Not Found\", function () {",
+									"    pm.response.to.have.status(404);",
+									"});",
+									"pm.test(\"Error code is WALLET_NOT_FOUND\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.code).to.eql(\"WALLET_NOT_FOUND\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sourceId\": \"partner_pos_01\",\n  \"externalTransactionId\": \"tx_failed_999\",\n  \"walletId\": \"W999\",\n  \"points\": 50\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/awards",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"awards"
+							]
+						},
+						"description": "Returns 404 when walletId does not exist. Does not consume the transaction identity."
+					},
+					"response": []
+				},
+				{
+					"name": "Validation - Missing Required Fields (400 Bad Request)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status is 400 Bad Request\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"pm.test(\"Error code is INVALID_REQUEST\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.code).to.eql(\"INVALID_REQUEST\");",
+									"    pm.expect(jsonData.details).to.be.an(\"array\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sourceId\": \"\",\n  \"externalTransactionId\": \"tx_002\",\n  \"walletId\": \"\",\n  \"points\": 50\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/awards",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"awards"
+							]
+						},
+						"description": "Empty sourceId and walletId fail model validation."
+					},
+					"response": []
+				},
+				{
+					"name": "Validation - Points Zero (400 Bad Request)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status is 400 Bad Request\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"pm.test(\"Details mention points limit\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.details.join(\" \")).to.include(\"points\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sourceId\": \"partner_pos_01\",\n  \"externalTransactionId\": \"tx_003\",\n  \"walletId\": \"W100\",\n  \"points\": 0\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/awards",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"awards"
+							]
+						},
+						"description": "Points must be at least 1. Sending 0 returns 400 Bad Request."
+					},
+					"response": []
+				},
+				{
+					"name": "Validation - Points Exceed 1000 (400 Bad Request)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status is 400 Bad Request\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sourceId\": \"partner_pos_01\",\n  \"externalTransactionId\": \"tx_004\",\n  \"walletId\": \"W100\",\n  \"points\": 5000\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/awards",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"awards"
+							]
+						},
+						"description": "Points cannot exceed 1000. Sending 5000 returns 400 Bad Request."
+					},
+					"response": []
+				},
+				{
+					"name": "Validation - Malformed JSON (400 Bad Request)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status is 400 Bad Request\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"pm.test(\"Error code is INVALID_REQUEST\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.code).to.eql(\"INVALID_REQUEST\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sourceId\": \"partner_pos_01\",\n  \"points\": \"not_a_number\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/awards",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"awards"
+							]
+						},
+						"description": "Malformed JSON payload with string instead of integer points returns 400 Bad Request."
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
